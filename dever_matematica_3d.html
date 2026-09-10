@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lição Estranha — Matemática</title>
+<style>
+*{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#05070d;color:#fff}
+#game{position:relative;width:100%;height:100%;background:radial-gradient(circle at 50% 35%,#27334a 0,#111827 42%,#03050a 100%)}
+#scene{position:absolute;inset:0;perspective:900px;overflow:hidden}
+.room{position:absolute;left:50%;top:50%;width:900px;height:620px;transform:translate(-50%,-50%) rotateX(2deg);transform-style:preserve-3d}
+.wall{position:absolute;background:linear-gradient(135deg,#222b3a,#111827);box-shadow:inset 0 0 80px #000}
+.back{left:100px;top:50px;width:700px;height:450px;transform:translateZ(-220px)}
+.floor{left:100px;top:500px;width:700px;height:250px;transform-origin:top;transform:rotateX(68deg);background:repeating-linear-gradient(90deg,#242b35 0 70px,#1b222c 70px 140px)}
+.ceiling{left:100px;top:-200px;width:700px;height:250px;transform-origin:bottom;transform:rotateX(-68deg);background:#0c111a}
+.window{position:absolute;left:135px;top:110px;width:230px;height:190px;background:#050b18;border:10px solid #343d4c;box-shadow:0 0 20px #000;transform:translateZ(-200px)}
+.window:before,.window:after{content:"";position:absolute;background:#394354}
+.window:before{width:8px;height:100%;left:50%;transform:translateX(-50%)}.window:after{height:8px;width:100%;top:50%;transform:translateY(-50%)}
+.moon{position:absolute;right:25px;top:18px;width:45px;height:45px;border-radius:50%;background:#e9edf7;box-shadow:0 0 25px #fff}
+.star{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff}
+.desk{position:absolute;left:240px;top:330px;width:500px;height:35px;background:#75492f;border-radius:5px;transform:translateZ(10px);box-shadow:0 15px 25px #000}
+.desk:after{content:"";position:absolute;left:30px;top:30px;width:25px;height:170px;background:#3e271b;box-shadow:410px 0 #3e271b}
+.lamp{position:absolute;left:670px;top:260px;width:80px;height:90px;transform:translateZ(30px)}
+.lamp .shade{width:70px;height:35px;background:#d3a84b;border-radius:50% 50% 15% 15%;box-shadow:0 0 55px #ffd75a}.lamp .stem{margin:auto;width:7px;height:55px;background:#555}.lamp .base{margin:auto;width:35px;height:8px;background:#555;border-radius:50%}
+.paper{position:absolute;left:390px;top:310px;width:280px;height:170px;background:#f3eee1;color:#151515;padding:18px;transform:translateZ(45px) rotateX(8deg);box-shadow:0 8px 20px #000;font-family:"Courier New",monospace}
+.paper h3{margin:0 0 8px;font-size:16px}.sum{font-size:22px;margin:10px 0}
+.pencil{position:absolute;left:600px;top:445px;width:130px;height:8px;background:#e7b85b;transform:translateZ(60px) rotate(-10deg);border-radius:4px}
+.pencil:after{content:"";position:absolute;right:-14px;top:-2px;border-left:16px solid #e4d4b5;border-top:6px solid transparent;border-bottom:6px solid transparent}
+#monster{display:none;position:absolute;left:50%;top:32%;font-size:110px;transform:translate(-50%,-50%) translateZ(120px);filter:drop-shadow(0 0 25px #a00);z-index:8;animation:float .8s infinite alternate}
+#dad{display:none;position:absolute;right:3%;bottom:8%;font-size:130px;z-index:8;animation:walk .7s infinite alternate}
+#outside{display:none;position:absolute;left:175px;top:125px;font-size:100px;z-index:6;animation:peek .5s infinite alternate}
+@keyframes float{to{transform:translate(-50%,-55%) scale(1.08)}}@keyframes walk{to{transform:translateX(-18px)}}@keyframes peek{to{transform:translateX(18px)}}
+#ui{position:absolute;inset:0;z-index:20;pointer-events:none}
+#hud{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;gap:10px}
+.card{background:rgba(5,8,15,.82);border:1px solid #536176;border-radius:12px;padding:10px 14px;backdrop-filter:blur(8px);pointer-events:auto}
+#problem{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:min(620px,92vw);text-align:center}
+#problem .question{font-size:32px;font-weight:700;margin-bottom:10px}
+input{width:170px;padding:12px;font-size:22px;text-align:center;border-radius:10px;border:2px solid #6c7a91;outline:none}
+button{padding:12px 18px;border:0;border-radius:10px;background:#4f8cff;color:#fff;font-weight:700;cursor:pointer;margin-left:8px}button:hover{filter:brightness(1.15)}
+#start,#end{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,4,10,.82);z-index:50;pointer-events:auto}
+.modal{width:min(620px,92vw);padding:34px;border-radius:18px;background:#111827;border:1px solid #64748b;box-shadow:0 25px 80px #000;text-align:center}
+.modal h1{font-size:42px;margin-top:0;letter-spacing:-1px;text-shadow:0 4px 20px rgba(120,160,255,.35)}.modal p{line-height:1.6;color:#cbd5e1}.menu-badges{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:18px 0}.badge{padding:7px 10px;border-radius:999px;background:#1e293b;border:1px solid #475569;font-size:12px;color:#dbeafe}
+#message{height:24px;margin-top:8px;font-weight:700}
+.hidden{display:none!important}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:40;pointer-events:none}
+.scare #flash{animation:flash .35s}.scare #scene{animation:shake .35s}
+@keyframes flash{0%{opacity:.8}100%{opacity:0}}@keyframes shake{0%,100%{transform:translate(0)}25%{transform:translate(12px,-5px)}50%{transform:translate(-12px,6px)}75%{transform:translate(7px,4px)}}
+.small{font-size:13px;color:#9ca3af}
+@media(max-width:700px){.room{transform:translate(-50%,-50%) scale(.72);}.paper{left:350px}.window{left:120px}.desk{left:200px}.question{font-size:25px!important}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="scene">
+    <div class="room">
+      <div class="wall back"></div><div class="floor"></div><div class="ceiling"></div>
+      <div class="window"><div class="moon"></div>
+        <i class="star" style="left:25px;top:30px"></i><i class="star" style="left:120px;top:70px"></i><i class="star" style="left:180px;top:35px"></i>
+      </div>
+      <div class="desk"></div><div class="lamp"><div class="shade"></div><div class="stem"></div><div class="base"></div></div>
+      <div class="paper"><h3>MATEMÁTICA</h3><div class="sum" id="paperSum">?</div><div class="small">Resolva antes que algo aconteça...</div></div>
+      <div class="pencil"></div>
+    </div>
+    <div id="monster">👹</div><div id="dad">🧔</div><div id="outside">👀</div>
+  </div>
+  <div id="flash"></div>
+  <div id="ui">
+    <div id="hud">
+      <div class="card">Questão: <b id="count">0</b>/15</div>
+      <div class="card">Acertos: <b id="score">0</b> &nbsp; ❤️ <b id="lives">3</b></div>
+      <div class="card">Tempo: <b id="timer">60</b>s</div>
+    </div>
+    <div id="problem" class="card">
+      <div class="question" id="question">Clique em começar</div>
+      <input id="answer" type="text" inputmode="decimal" autocomplete="off" disabled>
+      <button id="submit" disabled>Responder</button>
+      <div id="message"></div>
+    </div>
+  </div>
+  <div id="start"><div class="modal">
+    <h1>📚 Lição Estranha</h1>
+    <p>Você só queria fazer sua lição em paz... mas coisas estranhas vão acontecer enquanto resolve as contas.</p>
+    <p><b>Contas diferentes e em ordem aleatória a cada partida.</b><br>Frações, porcentagens, potências e expressões esperam por você.</p>
+<div class="menu-badges"><span class="badge">🎲 Aleatório</span><span class="badge">➗ Frações</span><span class="badge">％ Porcentagens</span><span class="badge">⚡ Pressão de tempo</span></div>
+    <button id="startBtn">▶ Começar a lição</button>
+  </div></div>
+  <div id="end" class="hidden"><div class="modal">
+    <h1 id="endTitle">Fim da lição</h1><p id="endText"></p>
+    <button id="again">Jogar novamente</button>
+  </div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let questions=[],index=0,score=0,lives=3,time=60,timer=null,playing=false,eventTimer=null,eventCount=0,questionStarted=0,questionTimeout=null;
+
+function shuffle(a){return a.sort(()=>Math.random()-.5)}
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1}
+function frac(n,d){const g=gcd(n,d);return [n/g,d/g]}
+function makeQuestions(){
+  const q=[];
+  const types=["add","sub","mul","div","fracadd","fracsub","fracmul","percent","power","expr"];
+  for(let i=0;i<15;i++){
+    const type=types[rand(0,types.length-1)];
+    let text,ans;
+    if(type==="add"){let a=rand(25,900),b=rand(25,900);text=`${a} + ${b} = ?`;ans=a+b}
+    if(type==="sub"){let a=rand(200,1200),b=rand(20,a);text=`${a} − ${b} = ?`;ans=a-b}
+    if(type==="mul"){let a=rand(12,99),b=rand(6,45);text=`${a} × ${b} = ?`;ans=a*b}
+    if(type==="div"){let b=rand(3,15),a=b*rand(4,80);text=`${a} ÷ ${b} = ?`;ans=a/b}
+    if(type==="fracadd"){let d=rand(3,12),a=rand(1,d-1),b=rand(1,d-1);let n=a+b;let f=frac(n,d);text=`${a}/${d} + ${b}/${d} = ?  (responda a/b)`;ans=f[0]+"/"+f[1]}
+    if(type==="fracsub"){let d=rand(4,12),a=rand(2,d-1),b=rand(1,a-1);let f=frac(a-b,d);text=`${a}/${d} − ${b}/${d} = ?  (responda a/b)`;ans=f[0]+"/"+f[1]}
+    if(type==="fracmul"){let a=rand(1,5),b=rand(2,8),c=rand(1,6),d=rand(2,9);let f=frac(a*c,b*d);text=`${a}/${b} × ${c}/${d} = ?  (responda a/b)`;ans=f[0]+"/"+f[1]}
+    if(type==="percent"){let pct=[10,15,20,25,30,40,50,75][rand(0,7)],base=rand(2,20)*10;ans=base*pct/100;text=`${pct}% de ${base} = ?`}
+    if(type==="power"){let a=rand(2,9),b=rand(2,3);ans=a**b;text=`${a}<sup>${b}</sup> = ?`; }
+    if(type==="expr"){let a=rand(3,18),b=rand(2,9),c=rand(2,12);ans=a+b*c;text=`${a} + ${b} × ${c} = ?`}
+    q.push({text,ans:String(ans)});
+  }
+  return shuffle(q);
+}
+function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+
+function startGame(){
+  questions=makeQuestions();index=0;score=0;lives=3;time=60;eventCount=0;playing=true;
+  $("start").classList.add("hidden");$("end").classList.add("hidden");
+  $("answer").disabled=false;$("submit").disabled=false;$("answer").focus();
+  clearInterval(timer);clearTimeout(eventTimer);
+  timer=setInterval(()=>{time--;render();if(time<=0)finish("⏰ O tempo acabou!");},1000);
+  nextQuestion();scheduleEvent();
+}
+function startQuestionClock(){
+  clearTimeout(questionTimeout);
+  questionStarted=Date.now();
+  // If the player stalls on one question, Dad enters and the run ends.
+  questionTimeout=setTimeout(()=>{ if(playing) dadCaught(); }, 10500);
+}
+function dadCaught(){
+  clearTimeout(questionTimeout);
+  scare("dad");
+  $("message").textContent="🧔 Seu pai entrou e deu um tapinha de bronca! FIM DE JOGO.";
+  $("message").style.color="#fb7185";
+  setTimeout(()=>finish("🧔 Você demorou demais. Seu pai te pegou enrolando e a lição acabou!"),700);
+}
+function nextQuestion(){
+  if(index>=questions.length){finish("🏆 Você terminou a lição!");return}
+  const q=questions[index];$("question").innerHTML=q.text;$("paperSum").textContent=q.text.replace(" = ?","");
+  $("answer").value="";$("message").textContent="";render();startQuestionClock();
+}
+function submit(){
+  if(!playing)return;
+  const raw=$("answer").value.trim().replace(",",".");
+  if(raw==="")return;
+  clearTimeout(questionTimeout);
+  const expected=String(questions[index].ans);
+  const val=Number(raw);
+  const correct = raw===expected || (!Number.isNaN(val) && !expected.includes("/") && Math.abs(val-Number(expected))<1e-9);
+  if(correct){score++;$("message").textContent="✓ Certo!";$("message").style.color="#67e8a5"}
+  else {lives--;$("message").textContent=`✗ Era ${questions[index].ans}`;$("message").style.color="#fb7185";scare("wrong")}
+  index++;render();
+  if(lives<=0){finish("👻 Você perdeu todas as vidas!");return}
+  setTimeout(nextQuestion,350);
+}
+function render(){$("count").textContent=Math.min(index,15);$("score").textContent=score;$("lives").textContent=lives;$("timer").textContent=time}
+function finish(text){
+  if(!playing)return;playing=false;clearInterval(timer);clearTimeout(eventTimer);clearTimeout(questionTimeout);
+  $("answer").disabled=true;$("submit").disabled=true;$("end").classList.remove("hidden");
+  $("endTitle").textContent=score>=12?"🏆 Gênio da Matemática!":"📖 Fim da lição";
+  $("endText").textContent=`${text} Você acertou ${score} de ${Math.min(index,15)} questões.`;
+}
+function scheduleEvent(){
+  if(!playing)return;
+  const delay=rand(5000,10000);
+  eventTimer=setTimeout(()=>{
+    triggerEvent();scheduleEvent();
+  },delay);
+}
+function hideAll(){$("monster").style.display="none";$("dad").style.display="none";$("outside").style.display="none"}
+function scare(kind){
+  document.body.classList.remove("scare");void document.body.offsetWidth;document.body.classList.add("scare");
+  hideAll();
+  if(kind==="monster")$("monster").style.display="block";
+  if(kind==="dad")$("dad").style.display="block";
+  if(kind==="window")$("outside").style.display="block";
+  setTimeout(hideAll,1800);
+}
+function triggerEvent(){
+  if(!playing)return;
+  eventCount++;
+  const r=Math.random();
+  if(r<.34) scare("monster");
+  else if(r<.67) scare("dad");
+  else scare("window");
+  // Eventos mais raros: apagão/bonificação
+  if(eventCount%4===0){
+    setTimeout(()=>{
+      if(!playing)return;
+      time=Math.max(0,time-4);render();
+      $("message").textContent="😱 Você se distraiu! -4 segundos";
+      $("message").style.color="#fbbf24";
+    },700);
+  }
+}
+$("startBtn").onclick=startGame;$("again").onclick=startGame;$("submit").onclick=submit;
+$("answer").addEventListener("keydown",e=>{if(e.key==="Enter")submit()});
+render();
+</script>
+</body>
+</html>
