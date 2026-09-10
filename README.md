@@ -1,1 +1,1 @@
-# Li-o-Estranha-GPT
+# Lição-Estranha-GPT
