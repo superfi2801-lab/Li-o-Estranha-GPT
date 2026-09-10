@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Lição Estranha 3D</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070b;color:#fff;font-family:Arial,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}
+canvas{display:block}
+#menu,#end{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#02040acc,#02040af2);z-index:20}
+.panel{width:min(520px,88vw);padding:28px;border:1px solid #46546d;border-radius:22px;background:#0d1420ee;box-shadow:0 20px 70px #000;text-align:center}
+h1{font-size:42px;margin:0 0 8px}h2{margin:0 0 12px}
+p{color:#cbd5e1;line-height:1.5}
+.badges{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:18px 0}.badge{padding:7px 10px;border:1px solid #334155;border-radius:99px;background:#172033;font-size:12px}
+button{border:0;border-radius:12px;padding:14px 20px;background:#568cff;color:white;font-size:16px;font-weight:700}
+#hud{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:5;pointer-events:none}
+.box{background:#08101ccc;border:1px solid #526078;border-radius:12px;padding:9px 12px;font-size:14px}
+#question{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(600px,90vw);text-align:center;z-index:8;background:#08101ce8;border:1px solid #526078;border-radius:16px;padding:12px;display:none}
+#qtext{font-size:25px;font-weight:700;margin-bottom:8px}
+#answer{width:120px;padding:11px;border-radius:9px;border:1px solid #64748b;font-size:20px;text-align:center;background:#f8fafc}
+#answer:disabled{opacity:.6}#msg{height:20px;margin-top:6px;font-size:13px}
+#hint{position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:5;background:#08101ccc;border-radius:10px;padding:7px 11px;font-size:12px;color:#cbd5e1}
+#joystick{position:absolute;left:22px;bottom:28px;width:120px;height:120px;border-radius:50%;background:#ffffff18;border:1px solid #ffffff30;z-index:10}
+#stick{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:#ffffff3b;border:1px solid #ffffff55}
+#look{position:absolute;right:0;top:70px;bottom:0;width:62%;z-index:6}
+#interact{position:absolute;right:22px;bottom:42px;width:72px;height:72px;border-radius:50%;z-index:11;background:#568cffdd}
+#lock{display:none;position:absolute;inset:0;z-index:30;background:#05070bdd;align-items:center;justify-content:center;text-align:center}
+#lock .panel{width:min(400px,80vw)}
+.hidden{display:none!important}
+@media(max-width:420px){h1{font-size:34px}.panel{padding:22px}#question{bottom:12px}#qtext{font-size:21px}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="menu">
+ <div class="panel">
+  <h1>📚 Lição Estranha</h1>
+  <p>Um dever de matemática. Um quarto silencioso. E coisas que definitivamente não deveriam estar acontecendo.</p>
+  <div class="badges"><span class="badge">🎮 3D real</span><span class="badge">📱 Mobile</span><span class="badge">🎲 Aleatório</span><span class="badge">👹 Eventos</span></div>
+  <p><b>Controles:</b> arraste a área direita para olhar • joystick esquerdo para andar • aproxime-se da escrivaninha e toque em <b>✋</b> para estudar.</p>
+  <button id="start">Começar</button>
+ </div>
+</div>
+<div id="end" class="hidden"><div class="panel"><h2 id="endTitle"></h2><p id="endText"></p><button id="again">Jogar novamente</button></div></div>
+<div id="hud"><div class="box">Questão <b id="num">0</b>/15</div><div class="box">Acertos <b id="score">0</b> &nbsp; ❤️ <b id="lives">3</b> &nbsp; ⏱️ <b id="time">90</b></div></div>
+<div id="hint">Vá até a escrivaninha.</div>
+<div id="question"><div id="qtext"></div><form id="form"><input id="answer" autocomplete="off" inputmode="decimal" aria-label="Resposta"><button>OK</button></form><div id="msg"></div></div>
+<div id="joystick"><div id="stick"></div></div><div id="look"></div><button id="interact">✋</button>
+<div id="lock"><div class="panel"><h2>🌙</h2><p>Você se distraiu. O quarto ficou estranhamente silencioso...</p><button id="resume">Continuar</button></div></div>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+const root=document.getElementById("game");
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x050812);
+scene.fog=new THREE.Fog(0x050812,5,18);
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,50);
+camera.position.set(0,1.62,4.4);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+root.appendChild(renderer.domElement);
+
+const ambient=new THREE.HemisphereLight(0x9db7df,0x16110d,.45);scene.add(ambient);
+const lamp=new THREE.PointLight(0xffd27a,12,7);lamp.position.set(-1.7,2.7,0.1);lamp.castShadow=true;scene.add(lamp);
+
+function mat(c,rough=1){return new THREE.MeshStandardMaterial({color:c,roughness:rough})}
+function cube(name,pos,scale,color,cast=true){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(...scale),mat(color));m.name=name;m.position.set(...pos);m.castShadow=cast;m.receiveShadow=true;scene.add(m);return m;
+}
+// Room
+cube("floor",[0,0,0],[9,.15,9],0x242832,false);
+cube("back",[0,2,-4.5],[9,4,.15],0x171d28,false);
+cube("left",[-4.5,2,0],[.15,4,9],0x151b25,false);
+cube("right",[4.5,2,0],[.15,4,9],0x151b25,false);
+cube("ceiling",[0,4,0],[9,.15,9],0x0d121b,false);
+// rug
+cube("rug",[0,.09,.8],[3,.03,2.2],0x30394a,false);
+// bed
+cube("bedbase",[2.6,.65,-2.5],[2.6,.7,1.8],0x3b2b27);
+cube("mattress",[2.6,1.12,-2.5],[2.5,.28,1.7],0x9ba1a8);
+cube("pillow",[2.6,1.34,-3.18],[1.25,.18,.5],0xd9d9d3);
+// desk
+cube("desk",[0,1.35,-1.05],[2.8,.16,1.05],0x70472e);
+cube("leg1",[-1.15,.68,-1.05],[.13,1.35,.13],0x493021);
+cube("leg2",[1.15,.68,-1.05],[.13,1.35,.13],0x493021);
+// laptop/paper
+cube("book",[0,1.5,-1.05],[1.4,.08,.9],0xe7e0cc,false);
+cube("screen",[0,1.95,-1.38],[1.25,.8,.08],0x18263b);
+cube("window",[2.8,2.35,-4.39],[2.3,2,.08],0x091525,false);
+cube("windowbar",[2.8,2.35,-4.32],[.07,2,.1],0x596272,false);
+cube("windowbar2",[2.8,2.35,-4.32],[2.3,.07,.1],0x596272,false);
+
+// Simple 3D models built from primitives: dad + monster
+function person(color){
+ const g=new THREE.Group();
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.8,4,8),mat(color));body.position.y=1.15;body.castShadow=true;g.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.28,12,10),mat(0xc58f70));head.position.y=1.95;head.castShadow=true;g.add(head);
+ const eyeMat=mat(0x050505);
+ [-.1,.1].forEach(x=>{let e=new THREE.Mesh(new THREE.SphereGeometry(.035,6,6),eyeMat);e.position.set(x,2.0,.255);g.add(e)});
+ return g;
+}
+const dad=person(0x263b62);dad.position.set(5,0,-1.8);dad.rotation.y=-Math.PI/2;dad.visible=false;scene.add(dad);
+const monster=person(0x6b2030);monster.scale.set(1.35,1.35,1.35);monster.position.set(-3,0,-3);monster.visible=false;scene.add(monster);
+
+// window creature
+const eyes=new THREE.Group();
+for(const x of [-.22,.22]){const e=new THREE.Mesh(new THREE.SphereGeometry(.13,12,10),mat(0xdce8ff));e.position.set(2.8+x,2.5,-4.18);eyes.add(e)}
+eyes.visible=false;scene.add(eyes);
+
+const ray=new THREE.Raycaster();
+const clock=new THREE.Clock();
+let running=false,score=0,lives=3,index=0,time=90,questions=[],questionOpen=false,qDeadline=0,eventAt=0,lastEvent=0;
+let yaw=0,pitch=0,moveX=0,moveY=0,lookX=0,lookY=0,dragging=false,lastTX=0,lastTY=0;
+
+function gcd(a,b){while(b){[a,b]=[b,a%b]}return Math.abs(a)||1}
+function frac(n,d){let g=gcd(n,d);return [n/g,d/g]}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function makeQ(){
+ let out=[];
+ for(let i=0;i<15;i++){
+  let t=rnd(0,8),text,ans;
+  if(t===0){let a=rnd(20,80),b=rnd(10,70);text=`${a} + ${b} = ?`;ans=String(a+b)}
+  if(t===1){let a=rnd(80,200),b=rnd(10,a-1);text=`${a} − ${b} = ?`;ans=String(a-b)}
+  if(t===2){let a=rnd(8,35),b=rnd(4,18);text=`${a} × ${b} = ?`;ans=String(a*b)}
+  if(t===3){let b=rnd(3,12),a=b*rnd(4,25);text=`${a} ÷ ${b} = ?`;ans=String(a/b)}
+  if(t===4){let d=rnd(3,10),a=rnd(1,d-1),b=rnd(1,d-1),f=frac(a+b,d);text=`${a}/${d} + ${b}/${d} = ? (a/b)`;ans=f.join("/")}
+  if(t===5){let d=rnd(4,10),a=rnd(2,d-1),b=rnd(1,a-1),f=frac(a-b,d);text=`${a}/${d} − ${b}/${d} = ? (a/b)`;ans=f.join("/")}
+  if(t===6){let a=rnd(1,5),b=rnd(2,8),c=rnd(1,5),d=rnd(2,8),f=frac(a*c,b*d);text=`${a}/${b} × ${c}/${d} = ? (a/b)`;ans=f.join("/")}
+  if(t===7){let p=[10,20,25,30,40,50,75][rnd(0,6)],n=rnd(2,20)*10;text=`${p}% de ${n} = ?`;ans=String(n*p/100)}
+  if(t===8){let a=rnd(2,8),b=rnd(2,3);text=`${a}^${b} = ?`;ans=String(a**b)}
+  out.push({text,ans});
+ }
+ return out.sort(()=>Math.random()-.5);
+}
+function nearDesk(){return Math.hypot(camera.position.x,camera.position.z+1.05)<2.0}
+function startQ(){
+ const q=questions[index];document.getElementById("qtext").textContent=q.text;
+ document.getElementById("question").style.display="block";document.getElementById("answer").value="";
+ questionOpen=true;qDeadline=performance.now()+10500;
+ document.getElementById("answer").focus();
+}
+function answer(e){
+ e.preventDefault();if(!running||!questionOpen)return;
+ const raw=document.getElementById("answer").value.trim().replace(",",".");
+ if(!raw)return;
+ const expected=questions[index].ans;
+ const n=Number(raw);
+ const ok=raw===expected||(!expected.includes("/")&&Number.isFinite(n)&&Math.abs(n-Number(expected))<1e-9);
+ const msg=document.getElementById("msg");
+ if(ok){score++;msg.textContent="✓ Correto!";msg.style.color="#86efac"}
+ else{lives--;msg.textContent=`✗ Resposta: ${expected}`;msg.style.color="#fb7185"}
+ questionOpen=false;document.getElementById("question").style.display="none";index++;
+ updateHud();
+ if(lives<=0)end("Você ficou sem vidas.");
+ else if(index>=15)end("Você terminou a lição!");
+}
+function updateHud(){num.textContent=Math.min(index,15);document.getElementById("score").textContent=score;document.getElementById("lives").textContent=lives;document.getElementById("time").textContent=Math.ceil(time)}
+function end(reason){
+ running=false;questionOpen=false;document.getElementById("question").style.display="none";
+ document.getElementById("end").classList.remove("hidden");
+ document.getElementById("endTitle").textContent=score>=12?"🏆 Você sobreviveu à lição!":"📖 Fim de jogo";
+ document.getElementById("endText").textContent=`${reason} Acertos: ${score}/15.`;
+ dad.visible=false;monster.visible=false;eyes.visible=false;
+}
+function dadEvent(){
+ dad.visible=true;dad.position.set(3.8,0,-1.8);
+ const target=new THREE.Vector3(0,0,-.4);
+ let n=0;const id=setInterval(()=>{if(!running){clearInterval(id);return}dad.position.lerp(target,.08);n++;if(n>55){clearInterval(id);end("🧔 Seu pai entrou porque você demorou demais. Ele deu uma bronca e a lição acabou!");}},40);
+}
+function randomEvent(){
+ const r=Math.random();
+ if(r<.38){monster.visible=true;monster.position.set(rnd(-3,3),0,rnd(-3,1));setTimeout(()=>monster.visible=false,2300)}
+ else if(r<.72){eyes.visible=true;setTimeout(()=>eyes.visible=false,1800)}
+ else{dad.visible=true;dad.position.set(3.8,0,-1.8);setTimeout(()=>dad.visible=false,2200)}
+}
+function gameLoop(){
+ requestAnimationFrame(gameLoop);
+ const dt=Math.min(clock.getDelta(),.05);
+ if(running){
+  const speed=2.5;
+  const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const v=new THREE.Vector3().addScaledVector(forward,-moveY*speed*dt).addScaledVector(right,moveX*speed*dt);
+  camera.position.add(v);
+  camera.position.x=Math.max(-4.05,Math.min(4.05,camera.position.x));
+  camera.position.z=Math.max(-4.05,Math.min(4.05,camera.position.z));
+  camera.position.y=1.62;
+  camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
+  time-=dt;if(time<=0)end("⏰ O tempo acabou.");
+  if(questionOpen&&performance.now()>qDeadline)end("🧔 Você demorou demais em uma questão. Seu pai apareceu e a lição acabou!");
+  if(performance.now()>eventAt){randomEvent();eventAt=performance.now()+rnd(7000,13000)}
+  if(!questionOpen&&nearDesk()){document.getElementById("hint").textContent="Toque em ✋ para fazer a próxima questão."}
+  else document.getElementById("hint").textContent="Explore o quarto... e não demore.";
+  updateHud();
+ }
+ renderer.render(scene,camera);
+}
+function reset(){
+ questions=makeQ();index=0;score=0;lives=3;time=90;running=true;eventAt=performance.now()+5000;
+ camera.position.set(0,1.62,4.0);yaw=0;pitch=0;dad.visible=false;monster.visible=false;eyes.visible=false;
+ document.getElementById("menu").classList.add("hidden");document.getElementById("end").classList.add("hidden");
+ updateHud();
+}
+document.getElementById("start").onclick=reset;document.getElementById("again").onclick=reset;
+document.getElementById("form").addEventListener("submit",answer);
+document.getElementById("interact").addEventListener("pointerdown",()=>{if(running&&!questionOpen&&nearDesk())startQ()});
+
+// Joystick
+const joy=document.getElementById("joystick"),stick=document.getElementById("stick");
+joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);moveJoy(e)});
+joy.addEventListener("pointermove",e=>{if(joy.hasPointerCapture(e.pointerId))moveJoy(e)});
+joy.addEventListener("pointerup",()=>{moveX=moveY=0;stick.style.transform=""});
+function moveJoy(e){
+ const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ let x=e.clientX-cx,y=e.clientY-cy;const max=38,d=Math.hypot(x,y);if(d>max){x*=max/d;y*=max/d}
+ moveX=x/max;moveY=y/max;stick.style.transform=`translate(${x}px,${y}px)`;
+}
+// Look area
+const look=document.getElementById("look");
+look.addEventListener("pointerdown",e=>{look.setPointerCapture(e.pointerId);dragging=true;lastTX=e.clientX;lastTY=e.clientY});
+look.addEventListener("pointermove",e=>{if(!dragging)return;const dx=e.clientX-lastTX,dy=e.clientY-lastTY;lastTX=e.clientX;lastTY=e.clientY;yaw-=dx*.004;pitch-=dy*.003;pitch=Math.max(-1.25,Math.min(1.25,pitch))});
+look.addEventListener("pointerup",()=>dragging=false);look.addEventListener("pointercancel",()=>dragging=false);
+
+addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+gameLoop();
+</script>
+</body>
+</html>
